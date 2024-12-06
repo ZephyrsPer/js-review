@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <button id="btn">按钮</button>
+    <div id="app"></div>
+    <script>
+      let activeEffect = null;
+      function effect(fn) {
+        activeEffect = fn;
+        fn();
+        activeEffect = null;
+      }
+      function reactive(obj) {
+        const effectMap = {};
+        return new Proxy(obj, {
+          get(target, key) {
+            if (activeEffect) {
+              if (!effectMap[key]) {
+                effectMap[key] = [];
+              }
+              effectMap[key].push(activeEffect);
+            }
+            console.log("收集依赖", key, activeEffect);
+            return target[key];
+          },
+          set(target, key, value) {
+            target[key] = value;
+            console.log("派发更新", key, value);
+            effectMap[key]?.forEach((effect) => {
+              effect();
+            });
+            return true;
+          },
+        });
+      }
+      const app = document.getElementById("app");
+      const btn = document.getElementById("btn");
+
+      const state = reactive({
+        count: 0,
+      });
+
+      effect(() => {
+        app.textContent = state.count;
+      });
+
+      btn.onclick = () => {
+        state.count++;
+        console.log("state.count++ ===>", state.count);
+      };
+    </script>
+  </body>
+</html>
